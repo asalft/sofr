@@ -20,8 +20,8 @@ from telethon.errors import FloodWaitError
 # --- إعدادات (من environment) ---
 API_ID = int(os.environ.get("API_ID", "27227913"))
 API_HASH = os.environ.get("API_HASH", "ba805b182eca99224403dbcd5d4f50aa"))
-STRING_SESSION = os.environ.get("STRING_SESSION", "")
-SESSION_NAME = os.environ.get("SESSION_NAME", "1ApWapzMBu5v8ZCXS5VY2jGWQS8telT1luPammuF_yApdOY9wLfbBih6z6VDla5xzdmWJY7NfeW-d40tpMF4Oct9q2Y__p3lHTEMq_q_ieVB1Ix4ulGADTk3rzhQ9MsgNGlvB-sIBo3KxTH0MQyqNmcCQEe_EcCr2CGVQYT8tT-oht23WgBvC5px-dBRmdgdDesUM5DlAXTfWcWvXu8iq9R_5QuBZ4oXC0L1SYUQykSU2XG6sGOmSgpUQkH3UkKJh_w-2NxpNqJaNYtb1MpTkZHO7N0PS49wDIeuAUI-CMvXbkPOUEU1qznQYk-_1RJ_OTKXkNi38YnX4yDKglEv6X-AdT3WvmWM=")
+STRING_SESSION = os.environ.get("STRING_SESSION", "1ApWapzMBu5v8ZCXS5VY2jGWQS8telT1luPammuF_yApdOY9wLfbBih6z6VDla5xzdmWJY7NfeW-d40tpMF4Oct9q2Y__p3lHTEMq_q_ieVB1Ix4ulGADTk3rzhQ9MsgNGlvB-sIBo3KxTH0MQyqNmcCQEe_EcCr2CGVQYT8tT-oht23WgBvC5px-dBRmdgdDesUM5DlAXTfWcWvXu8iq9R_5QuBZ4oXC0L1SYUQykSU2XG6sGOmSgpUQkH3UkKJh_w-2NxpNqJaNYtb1MpTkZHO7N0PS49wDIeuAUI-CMvXbkPOUEU1qznQYk-_1RJ_OTKXkNi38YnX4yDKglEv6X-AdT3WvmWM=")
+SESSION_NAME = os.environ.get("SESSION_NAME", "session")
 DB_PATH = os.environ.get("DB_PATH", "users.db")
 WELCOME_TEXT = os.environ.get("WELCOME_TEXT",
     "أهلًا! قبل أن ترسل رسالة، الرجاء اختيار أحد الخيارات:\n\n"
