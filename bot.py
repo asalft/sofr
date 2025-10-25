@@ -1,10 +1,11 @@
 # bot.py
 """
-Telethon-based approval gate + group reply logger.
+Telegram approval gate for private messages using Telethon.
 Features:
-- Handles private chats with "قبول" / "رفض".
-- Blocks and deletes rejected users.
-- Creates/uses a log group to store any messages that are replies to YOUR messages in groups.
+- Deletes messages from unapproved users
+- Allows "قبول" / "رفض" via buttons or text
+- Blocks rejected users and clears conversation
+- Whitelist: users in this list bypass approval
 """
 
 import os
@@ -13,18 +14,25 @@ import sqlite3
 from telethon import TelegramClient, events, Button
 from telethon.sessions import StringSession
 from telethon.tl.functions.contacts import BlockRequest
-from telethon.tl.functions.messages import DeleteHistoryRequest, CreateChatRequest
-from telethon.tl.functions.channels import CreateChannelRequest
-from telethon.errors import FloodWaitError, ChannelPrivateError
+from telethon.tl.functions.messages import DeleteHistoryRequest
+from telethon.errors import FloodWaitError
 
 # ====== إعدادات الاتصال ======
-API_ID = 27227913
-API_HASH = "ba805b182eca99224403dbcd5d4f50aa"
-STRING_SESSION = "1ApWapzMBu5v8ZCXS5VY2jGWQS8telT1luPammuF_yApdOY9wLfbBih6z6VDla5xzdmWJY7NfeW-d40tpMF4Oct9q2Y__p3lHTEMq_q_ieVB1Ix4ulGADTk3rzhQ9MsgNGlvB-sIBo3KxTH0MQyqNmcCQEe_EcCr2CGVQYT8tT-oht23WgBvC5px-dBRmdgdDesUM5DlAXTfWcWvXu8iq9R_5QuBZ4oXC0L1SYUQykSU2XG6sGOmSgpUQkH3UkKJh_w-2NxpNqJaNYtb1MpTkZHO7N0PS49wDIeuAUI-CMvXbkPOUEU1qznQYk-_1RJ_OTKXkNi38YnX4yDKglEv6X-AdT3WvmWM="# ضع StringSession هنا
-SESSION_NAME = os.environ.get("SESSION_NAME", "session")
+API_ID = int(os.environ.get("API_ID", "27227913"))  # ضع API_ID هنا أو كمتغير بيئة
+API_HASH = os.environ.get("API_HASH", "ba805b182eca99224403dbcd5d4f50aa")  # ضع API_HASH هنا
+STRING_SESSION = os.environ.get("STRING_SESSION", "1ApWapzMBu5v8ZCXS5VY2jGWQS8telT1luPammuF_yApdOY9wLfbBih6z6VDla5xzdmWJY7NfeW-d40tpMF4Oct9q2Y__p3lHTEMq_q_ieVB1Ix4ulGADTk3rzhQ9MsgNGlvB-sIBo3KxTH0MQyqNmcCQEe_EcCr2CGVQYT8tT-oht23WgBvC5px-dBRmdgdDesUM5DlAXTfWcWvXu8iq9R_5QuBZ4oXC0L1SYUQykSU2XG6sGOmSgpUQkH3UkKJh_w-2NxpNqJaNYtb1MpTkZHO7N0PS49wDIeuAUI-CMvXbkPOUEU1qznQYk-_1RJ_OTKXkNi38YnX4yDKglEv6X-AdT3WvmWM=")  # ضع StringSession هنا
 DB_PATH = os.environ.get("DB_PATH", "users.db")
-WELCOME_TEXT = os.environ.get("WELCOME_TEXT", "أهلًا! قبل أن ترسل رسالة، اختر أحد الخيارين:\n\n(قبول = سيتم السماح بالكتابة إليّ، رفض = سيتم حظرك وحذف المحادثة.)")
+WELCOME_TEXT = os.environ.get(
+    "WELCOME_TEXT",
+    "أهلًا! قبل أن ترسل رسالة، اختر أحد الخيارين:\n\n(قبول = سيتم السماح بالكتابة إليّ، رفض = سيتم حظرك وحذف المحادثة.)"
+)
 MAX_PENDING = int(os.environ.get("MAX_PENDING", "20"))
+
+# ====== قائمة المسموحين مسبقًا ======
+WHITELIST = [
+    8466640160,  # ضع هنا أيديات الأشخاص المسموح لهم
+    987654321,
+]
 
 if not API_ID or not API_HASH:
     raise SystemExit("❌ يجب تحديد API_ID و API_HASH في البيئة أو داخل الكود.")
@@ -32,7 +40,7 @@ if not API_ID or not API_HASH:
 # ====== تهيئة العميل ======
 client = TelegramClient(StringSession(STRING_SESSION), API_ID, API_HASH)
 
-# ====== قاعدة بيانات ======
+# ====== قاعدة البيانات ======
 conn = sqlite3.connect(DB_PATH, check_same_thread=False)
 cur = conn.cursor()
 cur.execute("""
@@ -46,31 +54,6 @@ CREATE TABLE IF NOT EXISTS users (
 conn.commit()
 
 pending_asks = {}
-LOG_GROUP_ID = None  # سيتم إنشاؤها تلقائيًا لاحقًا
-
-# ====== إنشاء مجموعة السجلات ======
-async def ensure_log_group():
-    global LOG_GROUP_ID
-    me = await client.get_me()
-    title = f"LogGroup_{me.id}"
-    try:
-        result = await client(CreateChannelRequest(
-            title=title,
-            about="مجموعة لتخزين الرسائل التي يتم الرد عليها من حسابي.",
-            megagroup=True
-        ))
-        LOG_GROUP_ID = result.chats[0].id
-        print(f"✅ تم إنشاء مجموعة السجلات: {LOG_GROUP_ID}")
-    except Exception as e:
-        print("⚠️ فشل إنشاء المجموعة:", e)
-        # حاول البحث عن مجموعة قديمة بنفس الاسم
-        async for dialog in client.iter_dialogs():
-            if dialog.name == title:
-                LOG_GROUP_ID = dialog.id
-                print(f"📁 تم العثور على مجموعة السجلات الموجودة مسبقًا: {LOG_GROUP_ID}")
-                break
-    if LOG_GROUP_ID is None:
-        print("❌ لم يتم العثور على أو إنشاء مجموعة السجلات.")
 
 # ====== دوال المساعدة ======
 def set_user_status(user_id: int, status: str, note: str = None):
@@ -82,83 +65,83 @@ def get_user_status(user_id: int):
     row = cur.fetchone()
     return row[0] if row else None
 
+def count_pending_requests():
+    return len(pending_asks)
+
 # ====== التعامل مع الرسائل الخاصة ======
-@client.on(events.NewMessage(incoming=True))
-async def handle_private_and_groups(event):
-    global LOG_GROUP_ID
+@client.on(events.NewMessage(incoming=True, func=lambda e: e.is_private))
+async def handle_private(event):
+    uid = event.sender_id
+    me = await client.get_me()
+    if uid == me.id:
+        return  # تجاهل رسائلك أنت
 
-    if event.is_private:
-        uid = event.sender_id
-        me = await client.get_me()
-        if uid == me.id:
-            return  # تجاهل رسائلك أنت
-        status = get_user_status(uid)
+    # ====== تحقق Whitelist ======
+    if uid in WHITELIST:
+        return  # يسمح له بالمراسلة مباشرة بدون عرض قبول/رفض
 
-        # رفض يدوي
-        if event.raw_text.strip().lower() in ["رفض", "❌ رفض", "no", "reject"]:
-            set_user_status(uid, "rejected")
-            pending_asks.pop(uid, None)
-            await event.respond("تم رفضك وسيتم حظرك الآن ❌")
-            await handle_reject_user(uid, reason="typed_reject")
-            return
+    status = get_user_status(uid)
 
-        # قبول يدوي
-        if event.raw_text.strip().lower() in ["قبول", "✅ قبول", "yes", "accept"]:
-            set_user_status(uid, "accepted")
-            pending_asks.pop(uid, None)
-            await event.respond("تم قبولك ✅ يمكنك الآن المراسلة بحرية.")
-            return
+    # رفض يدوي
+    if event.raw_text.strip().lower() in ["رفض", "❌ رفض", "no", "reject"]:
+        set_user_status(uid, "rejected")
+        pending_asks.pop(uid, None)
+        await event.respond("تم رفضك وسيتم حظرك الآن ❌")
+        await handle_reject_user(uid, reason="typed_reject")
+        return
 
-        # حذف أي رسالة قبل القبول
-        if status not in ["accepted", "rejected"]:
-            try:
-                await event.delete()
-            except Exception:
-                pass
-            if uid not in pending_asks:
-                try:
-                    msg = await event.respond(
-                        WELCOME_TEXT,
-                        buttons=[[Button.inline("✅ قبول", b"accept"), Button.inline("❌ رفض", b"reject")]]
-                    )
-                    pending_asks[uid] = msg.id
-                except FloodWaitError as e:
-                    await asyncio.sleep(e.seconds)
-            return
+    # قبول يدوي
+    if event.raw_text.strip().lower() in ["قبول", "✅ قبول", "yes", "accept"]:
+        set_user_status(uid, "accepted")
+        pending_asks.pop(uid, None)
+        await event.respond("تم قبولك ✅ يمكنك الآن المراسلة بحرية.")
+        return
 
-    # ====== رسائل المجموعات ======
-    if event.is_group and LOG_GROUP_ID:
+    # حذف أي رسالة قبل القبول
+    if status not in ["accepted", "rejected"]:
         try:
-            me = await client.get_me()
-            if not event.is_reply:
-                return
-            reply_msg = await event.get_reply_message()
-            if reply_msg and reply_msg.sender_id == me.id:
-                sender = await event.get_sender()
-                chat = await event.get_chat()
-                text = (
-                    f"💬 *رد في مجموعة: {chat.title}*\n"
-                    f"👤 من: [{sender.first_name}](tg://user?id={sender.id})\n\n"
-                    f"📩 **الرسالة:**\n{event.raw_text}"
-                )
-                await client.send_message(LOG_GROUP_ID, text, link_preview=False)
-        except ChannelPrivateError:
-            print("⚠️ لا يمكن إرسال الرسالة إلى مجموعة السجلات (قد تكون خاصة أو محذوفة).")
+            await event.delete()
+        except Exception:
+            pass
 
-# ====== الأزرار (قبول / رفض) ======
+        if uid not in pending_asks:
+            # إرسال رسالة الترحيب مع الأزرار
+            try:
+                msg = await event.respond(
+                    WELCOME_TEXT,
+                    buttons=[[Button.inline("✅ قبول", b"accept"), Button.inline("❌ رفض", b"reject")]]
+                )
+                pending_asks[uid] = msg.id
+            except FloodWaitError as e:
+                await asyncio.sleep(e.seconds)
+        return
+
+# ====== التعامل مع أزرار القبول والرفض ======
 @client.on(events.CallbackQuery)
 async def callback_handler(event):
     uid = event.sender_id
     data = event.data
     status = get_user_status(uid)
+
+    if status == "accepted":
+        await event.answer("✅ أنت مقبول بالفعل.", alert=True)
+        return
+    if status == "rejected":
+        await event.answer("🚫 لقد تم حظرك سابقًا.", alert=True)
+        return
+
     if data == b"accept":
         set_user_status(uid, "accepted")
         pending_asks.pop(uid, None)
-        await event.edit("تم قبولك ✅ يمكنك الآن المراسلة.")
+        try:
+            await event.edit("✅ تم قبولك ويمكنك الآن المراسلة بحرية.")
+        except:
+            await event.answer("✅ تم قبولك.", alert=True)
+
     elif data == b"reject":
         set_user_status(uid, "rejected")
         pending_asks.pop(uid, None)
-        await event.answer("تم رفضك وسيتم حظرك الآن.", alert=True)
+        await event.answer("❌ تم رفضك وسيتم حظرك الآن.", alert=True)
         await handle_reject_user(uid, reason="clicked_reject")
 
 # ====== حظر المستخدم وحذف المحادثة ======
@@ -183,8 +166,7 @@ async def main():
     await client.start()
     me = await client.get_me()
     print(f"✅ تم تسجيل الدخول كـ: {me.first_name} (ID: {me.id})")
-    await ensure_log_group()
-    print("🚀 يعمل الآن وينتظر الرسائل...")
+    print("🚀 يعمل الآن وينتظر الرسائل الخاصة...")
     await client.run_until_disconnected()
 
 if __name__ == "__main__":
