@@ -20,11 +20,24 @@ from telethon.errors import FloodWaitError
 # ====== إعدادات الاتصال ======
 API_ID = int(os.environ.get("API_ID", "27227913"))  # ضع API_ID هنا أو كمتغير بيئة
 API_HASH = os.environ.get("API_HASH", "ba805b182eca99224403dbcd5d4f50aa")  # ضع API_HASH هنا
-STRING_SESSION = os.environ.get("STRING_SESSION", "1ApWapzMBu5v8ZCXS5VY2jGWQS8telT1luPammuF_yApdOY9wLfbBih6z6VDla5xzdmWJY7NfeW-d40tpMF4Oct9q2Y__p3lHTEMq_q_ieVB1Ix4ulGADTk3rzhQ9MsgNGlvB-sIBo3KxTH0MQyqNmcCQEe_EcCr2CGVQYT8tT-oht23WgBvC5px-dBRmdgdDesUM5DlAXTfWcWvXu8iq9R_5QuBZ4oXC0L1SYUQykSU2XG6sGOmSgpUQkH3UkKJh_w-2NxpNqJaNYtb1MpTkZHO7N0PS49wDIeuAUI-CMvXbkPOUEU1qznQYk-_1RJ_OTKXkNi38YnX4yDKglEv6X-AdT3WvmWM=")  # ضع StringSession هنا
+STRING_SESSION = os.environ.get("STRING_SESSION", "1AZWarzYBu5wVvKnuWFp_vbq2T5hPi6TPRdTOOrzvmEITGgugdiMxP7hEuWm_IVd6bX7XKdB7yK3e2GpJI8q6CLBxOa7vJFp3zd3JQKTmUtNLu7cPEfKsKZcJkav868TLIshtdLj-1Zt3i-c3luqEon7YXzb9rPPu_8vAtbXvMVHeGMQ7o7pjJNwSUV7GbeAEf7pL-65yxpkEtUPetw4HRdzdAPSV5epOWDVjdoULIXuoDTnTlTw0MYG1CuRFeTcHBlgmaDVMjhv7fe1zVb8aMclskhJqN6le17YOwK9wWhUSR7um071xuwLsQd4tM_4MAzHl-Y5EQin0LviUICO9r9qlIMckMUc=")  # ضع StringSession هنا
 DB_PATH = os.environ.get("DB_PATH", "users.db")
 WELCOME_TEXT = os.environ.get(
     "WELCOME_TEXT",
-    "أهلًا! قبل أن ترسل رسالة، اختر أحد الخيارين:\n\n(قبول = سيتم السماح بالكتابة إليّ، رفض = سيتم حظرك وحذف المحادثة.)"
+    """أهلًا!، :\n\n ،  
+    🎯 شروط المحادثة الخاصة بـ مسودن
+الحساب مخصص لـ:
+
+```« بوتات – مواقع – ألعاب »```
+📌 الشروط:
+1️⃣ يُرجى الالتزام بالاحترام وعدم الإساءة أو التخريب.
+2️⃣ يُمنع طلب أي شيء مجاني.
+3️⃣ يُمنع منعًا باتًا طلب الصداقة بيني وبينك
+
+✅ للموافقة على الشروط: أرسل كلمة "قبول"
+❌ للرفض: أرسل كلمة "رفض"```
+
+⚠️ لن يتم الرد حتى تقبل أو ترفض""" 
 )
 MAX_PENDING = int(os.environ.get("MAX_PENDING", "20"))
 
