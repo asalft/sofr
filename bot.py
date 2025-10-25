@@ -25,7 +25,7 @@ DB_PATH = os.environ.get("DB_PATH", "users.db")
 WELCOME_TEXT = os.environ.get(
     "WELCOME_TEXT",
     """أهلًا!، :\n\n ،  
-    مرحباً كوثري👱🏻‍♀️👑, 
+    مرحباً {sender.first_name}, 
 🎯 شروط المحادثة الخاصة بـ مسودن
 ```
 
