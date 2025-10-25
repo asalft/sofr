@@ -31,7 +31,7 @@ MAX_PENDING = int(os.environ.get("MAX_PENDING", "20"))
 # ====== قائمة المسموحين مسبقًا ======
 WHITELIST = [
     8466640160,  # ضع هنا أيديات الأشخاص المسموح لهم
-    987654321,
+    8060903976,
 ]
 
 if not API_ID or not API_HASH:
