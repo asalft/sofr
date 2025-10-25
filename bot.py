@@ -13,7 +13,8 @@ import sqlite3
 from telethon import TelegramClient, events, Button
 from telethon.sessions import StringSession
 from telethon.tl.functions.contacts import BlockRequest
-from telethon.tl.functions.messages import DeleteHistoryRequest, CreateChatRequest, CreateChannelRequest, GetFullChatRequest
+from telethon.tl.functions.messages import DeleteHistoryRequest, CreateChatRequest, GetFullChatRequest
+from telethon.tl.functions.channels import CreateChannelRequest
 from telethon.errors import FloodWaitError, ChatAdminRequiredError, UserAlreadyParticipantError
 
 # ===================== إعدادات =====================
